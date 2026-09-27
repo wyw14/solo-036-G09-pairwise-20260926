@@ -53,11 +53,12 @@ type ReceiveRequest struct {
 }
 
 type RecoveryReport struct {
-	RecoveredRuns    int  `json:"recovered_runs"`
-	RecoveredRoutes  int  `json:"recovered_routes"`
-	RecoveredPermits int  `json:"recovered_permits"`
-	JournalEvents    int  `json:"journal_events"`
-	Ready            bool `json:"ready"`
+	RecoveredRuns     int  `json:"recovered_runs"`
+	RecoveredRoutes   int  `json:"recovered_routes"`
+	RecoveredPermits  int  `json:"recovered_permits"`
+	RecoveredReadings int  `json:"recovered_readings"`
+	JournalEvents     int  `json:"journal_events"`
+	Ready             bool `json:"ready"`
 }
 
 func defaultControlState() *ControlState {
@@ -623,12 +624,14 @@ func (r *Runtime) RecoverPersistent() (RecoveryReport, error) {
 	if err != nil {
 		return RecoveryReport{}, err
 	}
+	recoveredReadings := r.restoreReadings(events)
 	return RecoveryReport{
-		RecoveredRuns:    len(snapshot.Control.Runs),
-		RecoveredRoutes:  len(leasing),
-		RecoveredPermits: len(permitEvents),
-		JournalEvents:    len(events),
-		Ready:            true,
+		RecoveredRuns:     len(snapshot.Control.Runs),
+		RecoveredRoutes:   len(leasing),
+		RecoveredPermits:  len(permitEvents),
+		RecoveredReadings: recoveredReadings,
+		JournalEvents:     len(events),
+		Ready:             true,
 	}, nil
 }
 
@@ -717,6 +720,7 @@ func (r *Runtime) HealthDetails() map[string]any {
 		"route_leases":        len(route.Snapshot(r.Routes)),
 		"emergency_safe":      emergency.Safe(r.Pressure),
 		"pressure_samples":    len(r.Pressure.History()),
+		"meter_readings":      r.Energy.Count(),
 		"recovery_steps":      recoverySteps,
 		"captured_at":         snapshot.CapturedAt,
 	}

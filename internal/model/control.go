@@ -108,17 +108,19 @@ type OperationRecord struct {
 }
 
 type ControlSnapshot struct {
-	Revision   string          `json:"revision"`
-	CapturedAt time.Time       `json:"captured_at"`
-	Stations   []Station       `json:"stations"`
-	Valves     []ValveState    `json:"valves"`
-	Closures   []ClosureState  `json:"closures"`
-	Pressures  []PressureState `json:"pressures"`
-	Routes     []RouteState    `json:"routes"`
-	Tracking   []TrackingState `json:"tracking"`
-	Permits    []PermitState   `json:"permits"`
-	Runs       []Run           `json:"runs"`
-	Incidents  []Incident      `json:"incidents"`
+	Revision      string          `json:"revision"`
+	CapturedAt    time.Time       `json:"captured_at"`
+	Stations      []Station       `json:"stations"`
+	Valves        []ValveState    `json:"valves"`
+	Closures      []ClosureState  `json:"closures"`
+	Pressures     []PressureState `json:"pressures"`
+	Routes        []RouteState    `json:"routes"`
+	Tracking      []TrackingState `json:"tracking"`
+	Permits       []PermitState   `json:"permits"`
+	Runs          []Run           `json:"runs"`
+	Incidents     []Incident      `json:"incidents"`
+	Meters        []Meter         `json:"meters"`
+	MeterReadings []MeterReading  `json:"meter_readings"`
 }
 
 func (s Station) Validate() error {
@@ -266,6 +268,28 @@ func (s ControlSnapshot) Validate() error {
 	for _, permit := range s.Permits {
 		if err := permit.Validate(); err != nil {
 			return fmt.Errorf("permit %s: %w", permit.Name, err)
+		}
+	}
+	meterIndex := make(map[string]Meter, len(s.Meters))
+	for _, meter := range s.Meters {
+		if err := meter.Validate(); err != nil {
+			return fmt.Errorf("meter %s: %w", meter.ID, err)
+		}
+		if _, duplicate := meterIndex[meter.ID]; duplicate {
+			return fmt.Errorf("meter %s appears more than once", meter.ID)
+		}
+		meterIndex[meter.ID] = meter
+	}
+	for _, reading := range s.MeterReadings {
+		if err := reading.Validate(); err != nil {
+			return fmt.Errorf("meter reading %s: %w", reading.ID, err)
+		}
+		meter, ok := meterIndex[reading.MeterID]
+		if !ok {
+			return fmt.Errorf("meter reading %s references unknown meter %s", reading.ID, reading.MeterID)
+		}
+		if meter.EquipmentID != reading.EquipmentID {
+			return fmt.Errorf("meter reading %s equipment does not match meter %s", reading.ID, reading.MeterID)
 		}
 	}
 	return nil

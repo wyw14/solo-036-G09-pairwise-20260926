@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/wyw14/solo-036/internal/compressor"
 	"github.com/wyw14/solo-036/internal/emergency"
+	"github.com/wyw14/solo-036/internal/energy"
 	"github.com/wyw14/solo-036/internal/journal"
 	"github.com/wyw14/solo-036/internal/launcher"
 	"github.com/wyw14/solo-036/internal/run"
@@ -17,6 +18,7 @@ func (r *Runtime) Bootstrap() {
 	_ = run.Health(r.Runs)
 	_ = launcher.Ready(r.Launcher)
 	_ = compressor.Healthy(r.Compressor)
+	_ = energy.Healthy(r.Meters)
 	_ = emergency.Safe(r.Pressure)
 }
 func (r *Runtime) Shutdown(ctx context.Context) error { r.Pressure.Stop(); return ctx.Err() }

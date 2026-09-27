@@ -500,17 +500,19 @@ func (r *Runtime) Snapshot() model.ControlSnapshot {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	snapshot := model.ControlSnapshot{
-		Revision:   control.Revision,
-		CapturedAt: time.Now().UTC(),
-		Stations:   make([]model.Station, 0, len(control.Stations)),
-		Valves:     make([]model.ValveState, 0, len(control.Valves)),
-		Closures:   make([]model.ClosureState, 0, len(control.Closures)),
-		Pressures:  make([]model.PressureState, 0, len(control.Pressures)),
-		Routes:     make([]model.RouteState, 0, len(control.Routes)),
-		Tracking:   make([]model.TrackingState, 0),
-		Permits:    make([]model.PermitState, 0),
-		Runs:       r.Runs.Snapshot(),
-		Incidents:  append([]model.Incident(nil), control.Incidents...),
+		Revision:      control.Revision,
+		CapturedAt:    time.Now().UTC(),
+		Stations:      make([]model.Station, 0, len(control.Stations)),
+		Valves:        make([]model.ValveState, 0, len(control.Valves)),
+		Closures:      make([]model.ClosureState, 0, len(control.Closures)),
+		Pressures:     make([]model.PressureState, 0, len(control.Pressures)),
+		Routes:        make([]model.RouteState, 0, len(control.Routes)),
+		Tracking:      make([]model.TrackingState, 0),
+		Permits:       make([]model.PermitState, 0),
+		Runs:          r.Runs.Snapshot(),
+		Incidents:     append([]model.Incident(nil), control.Incidents...),
+		Meters:        r.Meters.Meters(),
+		MeterReadings: r.Meters.AllReadings(),
 	}
 	for _, value := range control.Stations {
 		snapshot.Stations = append(snapshot.Stations, value)
@@ -565,6 +567,7 @@ func (r *Runtime) RecoverPersistent() (RecoveryReport, error) {
 		return RecoveryReport{}, err
 	}
 	run.Restore(r.Runs, snapshot.Control.Runs)
+	r.Meters.Restore(snapshot.Control.Meters, snapshot.Control.MeterReadings)
 	leasing := make([]model.RouteLease, 0)
 	for _, routeState := range snapshot.Control.Routes {
 		if routeState.Reserved {
